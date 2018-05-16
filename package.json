@@ -1,0 +1,27 @@
+{
+  "name": "dd_crawler",
+  "version": "0.0.1",
+  "description": "Dhamma Download Unofficial Crawler",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soechun/dd_crawler.git"
+  },
+  "keywords": [
+    "crawler"
+  ],
+  "author": "so3chun",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/soechun/dd_crawler/issues"
+  },
+  "homepage": "https://github.com/soechun/dd_crawler#readme",
+  "dependencies": {
+    "crawler": "^1.1.2",
+    "jsonfile": "^4.0.0",
+    "lodash": "^4.17.10"
+  }
+}
