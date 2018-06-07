@@ -6,5 +6,5 @@ module.exports = [
     'http://dhammadownload.com/VideoInEnglish.htm',
     'http://dhammadownload.com/VideoInMyanmar.htm',
     'http://dhammadownload.com/eBook-English.htm',
-    'http://dhammadownload.com/eBook-Myanmar.htm',
+    'http://dhammadownload.com/eBook-Myanmar.htm'
 ]

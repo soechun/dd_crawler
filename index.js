@@ -2,53 +2,90 @@ let crawler = require('crawler');
 let baseLinks = require('./baseLink');
 let _ = require('lodash');
 let jsonfile = require('jsonfile');
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
 var crawledLinks = [];
-var linkCrawler = new crawler({
-    maxConnections: 500,
-    callback: function(error, res, done) {
-        if(error) {
-            console.log(error);
-        } else {
-            var $ = res.$;
-            var selector = $('#layer24 a');
 
-            var temp = _.filter(selector, selected => {
-                let regex = /(mp3|pdf|wmv|mp4)/g;
-                try {
-                    var temp = selected.attribs.href.match(regex);
-                    return temp
-                } catch(e) {
-                    return false;
+var childParser = function (error, res, done) {
+    if (error) {
+        console.log(error);
+    } else {
+        var $ = res.$;
+        var selector = $('#layer24 a');
+
+        // filter out the links that ends in audio, video and book formats
+        var temp = _.filter(selector, selected => {
+            let regex = /(mp3|pdf|wmv|mp4)/g;
+            try {
+                var href = selected.attribs.href;
+                var temp = href.match(regex);
+                return temp
+            } catch (e) {
+                return false;
+            }
+        })
+
+        // get the href out of html element
+        var towrite = _.map(temp, selected => {
+            return {
+                author: res
+                    .options
+                    .uri
+                    .substr(res.options.uri.lastIndexOf('/') + 1)
+                    .split('.')[0],
+                link: `${selected.attribs.href}`
+            }
+        })
+        const csvWriter = createCsvWriter({
+            path: 'data.csv',
+            header: [
+                {
+                    id: 'author',
+                    title: 'author'
+                }, {
+                    id: 'link',
+                    title: 'link'
                 }
-            })
-            var temp = _.map(temp, selected => {
-                return {link:`${selected.attribs.href}`}
-            })
-            jsonfile.writeFile('/tmp/data.json', temp, {flag: 'a'},function(err) {
-                if(err)
-                console.log(err);
-            })
-        }
+            ],
+            append: true
+        });
+        csvWriter.writeRecords(towrite) // returns a promise
+            .then(() => {
+            console.log('...Done');
+        });
     }
-})
-var mainCrawler = new crawler({
-    maxConnections: 10,
-    callback: function(error, res, done) {
-        if(error) {
-            console.log(error);
-        }else {
-            var $ = res.$;
-            var selector = $('table td a');
-            _.forEach(selector, selected => {
-                crawledLinks.push(`http://dhammadownload.com/${selected.attribs.href}`)
-            })
-        }
-        done();
+}
+/**
+ * for each link crawled from the sidebar, save book and video and audio files
+ */
+var childCrawler = new crawler({maxConnections: 10000, callback: childParser})
+
+/**
+ *  Homepage parser to parse the page
+ */
+
+var mainParser = function (error, res, done) {
+    if (error) {
+        console.log(error);
+    } else {
+        var $ = res.$;
+        var selector = $('table td a');
+        _.forEach(selector, selected => {
+            crawledLinks.push(`http://dhammadownload.com/${selected.attribs.href}`)
+        })
     }
-});
-mainCrawler.on('drain', function() {
-    console.log('crawledLinks', crawledLinks);
-    linkCrawler.queue(crawledLinks)
+    done();
+}
+/**
+ * crawl through the main link from the side bar
+ */
+var mainCrawler = new crawler({maxConnections: 100, callback: mainParser});
+
+/**
+ * even when main crawler is finished
+ */
+mainCrawler.on('drain', function () {
+    // console.log('crawledLinks', crawledLinks);
+    childCrawler.queue(crawledLinks)
 })
 mainCrawler.queue(baseLinks);
