@@ -5,7 +5,7 @@ let jsonfile = require('jsonfile');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
 var crawledLinks = [];
-
+var allToWrite = [];
 var childParser = function (error, res, done) {
     if (error) {
         console.log(error);
@@ -26,7 +26,7 @@ var childParser = function (error, res, done) {
         })
 
         // get the href out of html element
-        var towrite = _.map(temp, selected => {
+        const towrite = _.map(temp, selected => {
             var language = res
                 .options
                 .uri
@@ -44,47 +44,52 @@ var childParser = function (error, res, done) {
                     .match(/video/i)
                     ? 'video'
                     : 'audio';
-            return {
-                author: res
-                    .options
-                    .uri
-                    .substr(res.options.uri.lastIndexOf('/') + 1)
-                    .split('.')[0],
-                link: `${selected.attribs.href}`,
-                language: language,
-                type: type
-            }
+            var author = res
+                .options
+                .uri
+                .substr(res.options.uri.lastIndexOf('/') + 1)
+                .split('.')[0];
+            author = author
+                .replace(/(ebook-in-english|eBookInEnglish|eBookInMyanmar|eBook-myanmar|mp3-english|mp3-myanmar|MP3InMyanmar|VideoInEnglish|VideoInMyanmar|video-myanmar|AbhidhammaInMyanmar|Video|mp3|eBook|audio)/gi, '')
+                .replace(/-/gi, ' ')
+                .trim();
+
+            return {author: author, link: `${selected.attribs.href}`, language: language, type: type}
         })
-        const csvWriter = createCsvWriter({
-            path: 'data.csv',
-            header: [
-                {
-                    id: 'author',
-                    title: 'author'
-                }, {
-                    id: 'link',
-                    title: 'link'
-                }, {
-                    id: 'language',
-                    title: 'language'
-                }, {
-                    id: 'type',
-                    title: 'type'
-                }
-            ],
-            append: true
-        });
-        csvWriter.writeRecords(towrite) // returns a promise
-            .then(() => {
-            console.log('...Done');
-        });
+        allToWrite = allToWrite.concat(towrite);
     }
+    done();
 }
 /**
  * for each link crawled from the sidebar, save book and video and audio files
  */
 var childCrawler = new crawler({maxConnections: 10000, callback: childParser})
-
+childCrawler.on('drain', function () {
+    console.log('writing')
+    const csvWriter = createCsvWriter({
+        path: 'data.csv',
+        header: [
+            {
+                id: 'author',
+                title: 'author'
+            }, {
+                id: 'link',
+                title: 'link'
+            }, {
+                id: 'language',
+                title: 'language'
+            }, {
+                id: 'type',
+                title: 'type'
+            }
+        ]
+    });
+    console.log(allToWrite.length)
+    csvWriter.writeRecords(allToWrite) // returns a promise
+        .then(() => {
+        console.log('...Done');
+    });
+})
 /**
  *  Homepage parser to parse the page
  */
