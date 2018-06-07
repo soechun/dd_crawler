@@ -27,13 +27,32 @@ var childParser = function (error, res, done) {
 
         // get the href out of html element
         var towrite = _.map(temp, selected => {
+            var language = res
+                .options
+                .uri
+                .match(/english/i)
+                ? 'english'
+                : 'myanmar';
+            var type = res
+                .options
+                .uri
+                .match(/book/i)
+                ? 'book'
+                : res
+                    .options
+                    .uri
+                    .match(/video/i)
+                    ? 'video'
+                    : 'audio';
             return {
                 author: res
                     .options
                     .uri
                     .substr(res.options.uri.lastIndexOf('/') + 1)
                     .split('.')[0],
-                link: `${selected.attribs.href}`
+                link: `${selected.attribs.href}`,
+                language: language,
+                type: type
             }
         })
         const csvWriter = createCsvWriter({
@@ -45,6 +64,12 @@ var childParser = function (error, res, done) {
                 }, {
                     id: 'link',
                     title: 'link'
+                }, {
+                    id: 'language',
+                    title: 'language'
+                }, {
+                    id: 'type',
+                    title: 'type'
                 }
             ],
             append: true
